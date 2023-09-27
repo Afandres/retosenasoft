@@ -31,14 +31,15 @@
                     {!! Form::label('image_file', 'Subir imagen local') !!}
                     {!! Form::file('image_file', ['class' => 'form-control', 'accept' => 'image/*']) !!}
                 </div>
+                <button type="button" class="btn btn-primary" id="submit_button">
+                    <i class='bx bx-right-arrow-alt'></i> Enviar
+                </button>   
                 <div class="form-group">
                     <label for="image_preview"></label>
                     <img src="" id="image_preview" style="max-width: 100%; max-height: 200px;">
+                    
                 </div>
-                <!-- Agregar el botón de enviar -->
-                <button type="button" class="btn btn-primary" id="submit_button">
-                    <i class='bx bx-right-arrow-alt'></i> Enviar
-                </button>
+                
                 {!! Form::close() !!}
             </div>
         </div>
@@ -73,35 +74,37 @@
                 $("#predictionResult").text("Predicción: " + prediction);
                 $("#predictionModal").modal("show");
             }
-    
+            
+            
+            // Agregar evento de clic para el botón de Enviar
             $("#submit_button").click(function () {
-                const imageUrl = $("#image_url").val();
-                const file = $("#image_file")[0].files[0];
-    
-                if (!imageUrl && !file) {
-                    alert("Por favor, seleccione una imagen o ingrese una URL.");
+                const imageFile = $("#image_file")[0].files[0];
+
+                if (!imageFile) {
+                    alert("Por favor, seleccione un archivo de imagen.");
                     return;
                 }
     
                 // URL y clave de predicción de Custom Vision
-                const predictionUrl = "https://southcentralus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/6937ad05-be4d-4d72-97c2-34f194ae1118/classify/iterations/challengeQualification/url";
+                const predictionUrl = "https://southcentralus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/6937ad05-be4d-4d72-97c2-34f194ae1118/classify/iterations/challengeQualification/image";
                 const predictionKey = "f396d854b020421c86efedb94f63c183";
     
                 // Encabezados de la solicitud
                 const headers = {
-                    "Prediction-Key": predictionKey,
-                    "Content-Type": "application/json",
+                    "Prediction-Key": predictionKey
                 };
     
-                // Cuerpo de la solicitud en formato JSON
-                const requestBody = { "Url": imageUrl };
-    
+                // Crear un objeto FormData para enviar el archivo
+                const formData = new FormData();
+                formData.append("image", imageFile);
+
                 // Realizar la solicitud AJAX directamente al servicio Custom Vision
                 $.ajax({
                     type: "POST",
                     url: predictionUrl,
-                    data: JSON.stringify(requestBody),
-                    contentType: "application/json",
+                    data: formData,
+                    contentType: false, 
+                    processData: false, 
                     headers: headers,
                     success: function (response) {
                         const prediction = response.predictions[0].tagName;
@@ -112,8 +115,8 @@
                     }
                 });
             });
-    
-            // Agregar evento de clic para el botón de la flecha junto al campo de la URL
+
+            // Funcion para realizar el envio de la imagen de maner local
             $("#upload_button").click(function () {
                 const imageUrl = $("#image_url").val();
     
@@ -132,7 +135,7 @@
                     "Content-Type": "application/json",
                 };
     
-                // Cuerpo de la solicitud en formato JSON
+                // Cuerpo de la solicitud URL de la imagen
                 const requestBody = { "Url": imageUrl };
     
                 // Realizar la solicitud AJAX directamente al servicio Custom Vision
@@ -143,8 +146,16 @@
                     contentType: "application/json",
                     headers: headers,
                     success: function (response) {
+                        console.log(response);
                         const prediction = response.predictions[0].tagName;
-                        showModal(prediction);
+                        const confidence = response.predictions[0].probability;
+
+                        if (confidence >= 0.90) {
+                            showModal(prediction);
+                        } else {
+                            alert("No tiene coincidencia");
+                        }
+                        
                     },
                     error: function () {
                         alert("Hubo un error al realizar la predicción.");
