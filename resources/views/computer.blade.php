@@ -376,6 +376,19 @@
 
         });
     </script>
+</body>
+</html>
+gesAndResponses);
+                        }
+                    },
+                    error: function () {
+                        alert("Hubo un error al realizar la traducción.");
+                    },
+                });
+            }
+
+        });
+    </script>
     
 </body>
 
