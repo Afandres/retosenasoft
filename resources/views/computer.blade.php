@@ -56,6 +56,7 @@
                 </div>
                 <div class="modal-body">
                     <p id="predictionResult"></p>
+                    <p id="predictionResultTranslater"></p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
@@ -152,5 +153,60 @@
             });
         });
     </script>
-</body>
+    <script>
+    $(document).ready(function () {
+        // Función para mostrar el modal con los resultados
+        function showModal(translation) {
+            $("#predictionResultTranslater").text("Translation: " + translation);
+        }
+
+        // Evento para detectar cambios en el campo de texto
+        $("#yourTextField").on("input", function () {
+            const inputText = $(this).val();
+
+            // Verifica si el campo de texto tiene un valor
+            if (inputText) {
+                translateText(inputText);
+            } else {
+                // Si el campo está vacío, borra las traducciones
+                $("#predictionResultTranslater").empty();
+            }
+        });
+
+        // Función para traducir el texto
+        function translateText(text) {
+            // Reemplaza "YOUR_KEY" y "YOUR_LOCATION" con tus propias claves y ubicación
+            const key = "YOUR_KEY";
+            const location = "YOUR_LOCATION";
+            const endpoint = "https://api.cognitive.microsofttranslator.com/";
+
+            const headers = {
+                "Ocp-Apim-Subscription-Key": key,
+                "Ocp-Apim-Subscription-Region": location,
+                "Content-Type": "application/json",
+            };
+
+            const body = [
+                {
+                    "text": text
+                }
+            ];
+
+            $.ajax({
+                type: "POST",
+                url: `${endpoint}/translate?api-version=3.0&from=en&to=fr&to=it&to=zh-Hans`,
+                data: JSON.stringify(body),
+                headers: headers,
+                success: function (response) {
+                    const translations = response[0].translations;
+                    const translatedText = translations.map(translation => translation.text).join(", ");
+                    showModal(translatedText);
+                },
+                error: function () {
+                    alert("Hubo un error al realizar la traducción.");
+                },
+            });
+        }
+    });
+</script>
 </html>
