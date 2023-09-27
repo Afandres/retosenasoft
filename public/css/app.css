@@ -8,6 +8,16 @@
     margin-top: 100px;
 }
 
+.result-image {
+    max-width: 80%; 
+    height: auto; 
+}
+
+.image-list img {
+    max-width: 80px;
+    max-height: 80px;
+}
+
 #image_preview{
     margin-left: 400px;
     margin-top: 50px;
