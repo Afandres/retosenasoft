@@ -11,9 +11,4 @@ class ComputerController extends Controller
         return view('computer');
     }
 
-
-    public function uploadimage(Request $request)
-    {
-        
-    }
 }
