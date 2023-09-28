@@ -33,7 +33,7 @@
                     <div class="input-group">
                         {!! Form::text('image_url', old('image_url'), ['class' => 'form-control', 'id' => 'image_url']) !!}
                         <button type="button" class="btn btn-primary" id="add_url_button">
-                            <i class='bx bx-right-arrow-alt'></i> Agregar URL
+                            <box-icon name='plus-circle' color='#ffffff' ></box-icon>
                         </button>
                     </div>
                 </div>
@@ -43,7 +43,7 @@
                         
                         {!! Form::file('image_files[]', ['class' => 'form-control', 'accept' => 'image/*', 'multiple' => true, 'id' => 'image_files']) !!}
                         <button type="button" class="btn btn-primary" id="add_files_button">
-                            <i class='bx bx-right-arrow-alt'></i> Agregar imágenes locales
+                            <box-icon name='plus-circle' color='#ffffff' ></box-icon>
                         </button>
                     </div>
                 </div>
@@ -60,12 +60,16 @@
 
                 <div class="form-group">
                     <button type="button" class="btn btn-primary" id="send_request_button">
-                        <i class='bx bx-right-arrow-alt'></i> Enviar Petición
+                        <box-icon name='send' color='#fff9f9' ></box-icon>
                     </button>
                 </div>
 
                 {!! Form::close() !!}
             </div>
+            <button type="button" class="btn btn-primary btn-sm rounded-pill shadow" id="detectObjectsButton">Detectar Objetos</button>
+                    <div id="imageContainerResult">
+                        <!-- Aquí se mostrará la imagen y las líneas de detección -->
+                    </div>
         </div>
     </div>
 
@@ -79,7 +83,7 @@
                 </div>
                 <div class="modal-body">
                     <!-- Contenido de resultados -->
-                    <div id="image_results"></div>
+                    <div id="image_results"></div>  
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
@@ -89,6 +93,7 @@
     </div>
 
     <!-- Scripts JavaScript para el manejo del backend -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-cognitiveservices-speech-sdk/3.11.0/speech.sdk.bundle.js"></script>
 
@@ -241,7 +246,7 @@
                 // Función para realizar la solicitud de predicción con una URL
                 function predictFromUrl(imageUrl) {
                     // URL y clave de predicción de Custom Vision
-                    const predictionUrl = "https://southcentralus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/6937ad05-be4d-4d72-97c2-34f194ae1118/classify/iterations/challengeQualification/url";
+                    const predictionUrl = "https://southcentralus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/6937ad05-be4d-4d72-97c2-34f194ae1118/classify/iterations/quialification_Senasoft/url";
                     const predictionKey = "f396d854b020421c86efedb94f63c183";
 
                     // Encabezados de la solicitud
@@ -275,7 +280,7 @@
                 // Función para realizar la solicitud de predicción con una imagen local
                 function predictFromLocalImage(imageFile) {
                     // URL y clave de predicción de Custom Vision
-                    const predictionUrl = "https://southcentralus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/6937ad05-be4d-4d72-97c2-34f194ae1118/classify/iterations/challengeQualification/image";
+                    const predictionUrl = "https://southcentralus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/6937ad05-be4d-4d72-97c2-34f194ae1118/classify/iterations/quialification_Senasoft/image";
                     const predictionKey = "f396d854b020421c86efedb94f63c183";
 
                     // Encabezados de la solicitud
@@ -374,22 +379,138 @@
                 });
             }
 
-        });
-    </script>
-</body>
-</html>
-gesAndResponses);
-                        }
-                    },
-                    error: function () {
-                        alert("Hubo un error al realizar la traducción.");
-                    },
+           // Agregar evento al botón "Detectar Objetos"
+                $("#detectObjectsButton").click(function () {
+                    // Obtener la URL de la imagen
+                    const imageUrl = $("#image_url").val();
+
+                    // Enviar la solicitud AJAX
+                    predictFromUrl2(imageUrl);
+
+                    // Mostrar la imagen
+                    displayImage(imageUrl);
                 });
-            }
+
+                // Función para mostrar la imagen
+                function displayImage(imageUrl) {
+                    // Crear un elemento div para el contenedor de la imagen
+                    const imageContainerDiv = document.createElement("div");
+                    imageContainerDiv.className = "card"; // Ajusta las clases de Bootstrap según tu diseño
+                    imageContainerDiv.style.maxWidth = "30%";
+
+                    // Crear un elemento de imagen
+                    const img = document.createElement("img");
+                    img.src = imageUrl;
+
+                    // Establecer el tamaño máximo
+                    img.style.maxWidth = "100%"; // Ajusta el ancho máximo según tus necesidades
+
+                    // Agregar la imagen al contenedor de la imagen
+                    imageContainerDiv.appendChild(img);
+
+                    // Agregar el contenedor de la imagen a la lista de imágenes
+                    $("#image_list").append(imageContainerDiv);
+                }
+
+                // Función para realizar la solicitud AJAX a la API de Azure
+                function predictFromUrl2(imageUrl) {
+                    // URL y clave de predicción de Custom Vision
+                    const predictionUrl = "https://southcentralus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/4a21c679-b6f1-4337-81c7-b9de39203f07/detect/iterations/Detection_Challenge/url";
+                    const predictionKey = "f396d854b020421c86efedb94f63c183";
+
+                    // Encabezados de la solicitud
+                    const headers = {
+                        "Prediction-Key": predictionKey,
+                        "Content-Type": "application/json",
+                        "Cache-Control": "no-cache",
+                    };
+
+                    // Cuerpo de la solicitud con la URL de la imagen
+                    const requestBody = { "Url": imageUrl };
+
+                    // Realizar la solicitud AJAX directamente al servicio Custom Vision
+                    $.ajax({
+                        type: "POST",
+                        url: predictionUrl,
+                        data: JSON.stringify(requestBody),
+                        contentType: "application/json",
+                        headers: headers,
+                        success: function (response) {
+                            console.log(response);
+
+                            // Llamar a la función displayDetectionResults para mostrar los resultados
+                            displayDetectionResults(imageUrl, response);
+                        },
+                        error: function () {
+                            alert("Hubo un error al realizar la predicción.");
+                        }
+                    });
+                }
+                function displayDetectionResults(imageUrl, response) {
+  const imageContainer = document.getElementById("imageContainerResult");
+  imageContainer.innerHTML = ""; // Limpiar el contenido existente en el div
+
+  // Obtener la lista de predicciones
+  const predictions = response.predictions;
+
+  // Filtrar las predicciones con una probabilidad igual o mayor a 0.90
+  const filteredPredictions = predictions.filter((prediction) => prediction.probability >= 0.90);
+
+  // Crear un elemento de imagen para mostrar la imagen original
+  const imageElement = document.createElement("img");
+  imageElement.src = imageUrl; // Usar la URL de la imagen pasada como parámetro
+
+  // Agregar la imagen al contenedor
+  imageContainer.appendChild(imageElement);
+
+  // Crear un contenedor relativo para la imagen y las líneas
+  const container = document.createElement("div");
+  imageContainer.style.position = "relative";
+  imageContainer.style.display = "inline-block";
+  imageContainer.style.width = imageElement.width + "px";
+  imageContainer.style.height = imageElement.height + "px";
+
+  // Agregar el contenedor al contenedor de la imagen
+  imageContainer.appendChild(container);
+
+  // Dibujar líneas de detección en el contenedor relativo
+  for (const prediction of filteredPredictions) {
+    const tagName = prediction.tagName;
+    const boundingBox = prediction.boundingBox;
+
+    // Obtener las coordenadas de la caja delimitadora
+    const left = boundingBox.left * imageElement.width;
+    const top = boundingBox.top * imageElement.height;
+    const width = boundingBox.width * imageElement.width;
+    const height = boundingBox.height * imageElement.height;
+
+    // Crear un elemento DIV para representar la línea de detección
+    const detectionLine = document.createElement("div");
+    detectionLine.style.position = "absolute";
+    detectionLine.style.left = left + "px";
+    detectionLine.style.top = top + "px";
+    detectionLine.style.width = width + "px";
+    detectionLine.style.height = height + "px";
+    detectionLine.style.border = "2px solid #FF0000"; // Color rojo
+
+    // Agregar el nombre de la etiqueta como etiqueta de texto
+    const label = document.createElement("div");
+    label.style.position = "absolute";
+    label.style.left = left + "px";
+    label.style.top = top - 20 + "px"; // Ajustar la posición vertical de la etiqueta
+    label.style.color = "#FF0000";
+    label.innerText = tagName;
+
+    // Agregar la línea de detección y la etiqueta al contenedor relativo
+    container.appendChild(detectionLine);
+    container.appendChild(label);
+  }
+}
+
+
 
         });
-    </script>
-    
-</body>
 
+    </script>
+</body>
 </html>
