@@ -54,35 +54,13 @@
                 <div class="row" id="image_list">
                     <!-- Aquí se mostrarán las imágenes -->
                 </div>
-
-                <div class="form-group">
-                    <button type="button" class="btn btn-primary" id="send_request_button">
-                        Enviar Petición
-                    </button>
-                </div>
-                <button type="button" class="btn btn-primary btn-sm rounded-pill shadow"
-                    id="detectObjectsButton">Detectar Objetos</button>
-                <div id="imageContainerResult">
+                <div class="row" id="imageContainerResult">
                     <!-- Aquí se mostrará la imagen y las líneas de detección -->
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal para mostrar los resultados de la predicción y traducción -->
-    <div class="modal fade" id="predictionModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">Resultado de Reconocimiento Facial</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div id="image_results"></div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                </div>
+                <div class="form-group">
+                    <button type="button" class="btn btn-primary"
+                    id="detectObjectsButton">Detectar Objetos</button><br>              
+                </div>                
             </div>
         </div>
     </div>
@@ -94,31 +72,7 @@
             let imageUrls = []; // Lista para almacenar las URLs de las imágenes
             let imageFiles = []; // Lista para almacenar las imágenes locales
 
-            // Función para mostrar los resultados en el modal
-            function showModal(imagesAndResponses) {
-                const modalBody = $("#image_results");
-                modalBody.empty(); // Limpiar el modal
-
-                imagesAndResponses.forEach((item, index) => {
-                    const imageUrl = item.imageUrl;
-                    const prediction = item.prediction;
-
-                    // Crear elementos para mostrar la imagen y resultados de predicción
-                    const imageDiv = $("<div class='image-result'></div>");
-                    const image = $("<img class='result-image'>");
-                    image.attr("src", imageUrl);
-                    const predictionText = $("<p class='prediction-text'></p>").text("Resultado: " +
-                        prediction);
-
-                    // Agregar los elementos al modal
-                    imageDiv.append(image);
-                    imageDiv.append(predictionText);
-                    modalBody.append(imageDiv);
-                });
-
-                $("#predictionModal").modal("show");
-            }
-
+           
             // Declarar la variable global para imageUrl
             let imageUrl = "";
 
@@ -179,8 +133,7 @@
                 // Enviar la solicitud AJAX
                 predictFromUrl2(imageUrl);
 
-                // Mostrar la imagen
-                displayImage(imageUrl);
+
             });
 
             // Agregar evento de clic para el botón de Agregar imágenes locales
@@ -214,27 +167,6 @@
                     alert("Por favor, seleccione al menos un archivo de imagen.");
                 }
             });
-
-            // Función para mostrar la imagen
-            function displayImage(imageUrl) {
-                // Crear un elemento div para el contenedor de la imagen
-                const imageContainerDiv = document.createElement("div");
-                imageContainerDiv.className = "card"; // Ajusta las clases de Bootstrap según tu diseño
-                imageContainerDiv.style.maxWidth = "30%";
-
-                // Crear un elemento de imagen
-                const img = document.createElement("img");
-                img.src = imageUrl;
-
-                // Establecer el tamaño máximo
-                img.style.maxWidth = "100%"; // Ajusta el ancho máximo según tus necesidades
-
-                // Agregar la imagen al contenedor de la imagen
-                imageContainerDiv.appendChild(img);
-
-                // Agregar el contenedor de la imagen a la lista de imágenes
-                $("#image_list").append(imageContainerDiv);
-            }
 
             // Función para realizar la solicitud AJAX a la API de Azure
             function predictFromUrl2(imageUrl) {
@@ -293,10 +225,8 @@
 
                 // Crear un contenedor relativo para la imagen y las líneas
                 const container = document.createElement("div");
-                imageContainer.style.position = "relative";
-                imageContainer.style.display = "inline-block";
-                imageContainer.style.width = imageElement.width + "px";
-                imageContainer.style.height = imageElement.height + "px";
+                imageContainer.className = "card";
+                imageContainer.style.maxWidth = "30%";
 
                 // Agregar el contenedor al contenedor de la imagen
                 imageContainer.appendChild(container);
