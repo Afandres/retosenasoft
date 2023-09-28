@@ -26,3 +26,4 @@ Route::post('/image', [ComputerController::class, 'uploadimage'])->name('imageur
 Route::get('/formulario', [VisionController::class, 'showForm'])->name('formulario');
 
 Route::post('/predict', [VisionController::class, 'predict'])->name('predict');
+Route::get('speechAzure.js', function () {return asset('resources/js/speechAzure.js');})->name('speechAzure.js');

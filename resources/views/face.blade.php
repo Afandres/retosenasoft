@@ -37,11 +37,17 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label for="image_files">Subir imágenes locales</label>
+                    {!! Form::label('image_files', 'Subir imágenes locales') !!}
                     <div class="input-group">
-                        <input type="file" class="form-control" accept="image/*" multiple id="image_files">
+
+                        {!! Form::file('image_files[]', [
+                            'class' => 'form-control',
+                            'accept' => 'image/*',
+                            'multiple' => true,
+                            'id' => 'image_files',
+                        ]) !!}
                         <button type="button" class="btn btn-primary" id="add_files_button">
-                            Agregar imágenes locales
+                            <box-icon name='plus-circle' color='#ffffff'></box-icon>
                         </button>
                     </div>
                 </div>
@@ -53,14 +59,14 @@
 
                 <div class="row" id="image_list">
                     <!-- Aquí se mostrarán las imágenes -->
-                </div>
+                </div><br>
                 <div class="row" id="imageContainerResult">
                     <!-- Aquí se mostrará la imagen y las líneas de detección -->
                 </div>
                 <div class="form-group">
-                    <button type="button" class="btn btn-primary"
-                    id="detectObjectsButton">Detectar Objetos</button><br>              
-                </div>                
+                    <button type="button" class="btn btn-primary" id="detectObjectsButton">Detectar
+                        Objetos</button><br>
+                </div>
             </div>
         </div>
     </div>
@@ -71,10 +77,12 @@
         $(document).ready(function() {
             let imageUrls = []; // Lista para almacenar las URLs de las imágenes
             let imageFiles = []; // Lista para almacenar las imágenes locales
+            let imagesAndResponses = [];
+            let imageUrl = ""; // Declarar la variable global para imageUrl
 
-           
-            // Declarar la variable global para imageUrl
-            let imageUrl = "";
+            // Declarar la variable global para imageContainer
+            const imageContainer = document.getElementById("imageContainerResult");
+
 
             // Agregar evento para agregar URL
             $("#add_url_button").click(function() {
@@ -122,6 +130,15 @@
                 }
             });
 
+            function clearContent() {
+                // Limpiar la lista de imágenes
+                $("#image_list").empty();
+                // Limpiar el campo de vista previa de la imagen
+                $("#image_preview").attr("src", "");
+                // Limpiar la lista de imágenes y resultados almacenados
+
+                imagesAndResponses = [];
+            }
             // Agregar evento al botón "Detectar Objetos"
             $("#detectObjectsButton").click(function() {
                 // Verificar si hay al menos una imagen para enviar
@@ -130,11 +147,24 @@
                     return;
                 }
 
-                // Enviar la solicitud AJAX
-                predictFromUrl2(imageUrl);
+                imageContainer.innerHTML = "";
+                // Función para limpiar el contenido
+                clearContent();
 
-
+                // Verificar si imageUrl tiene un valor y enviar la solicitud si es así
+                if (imageUrl) {
+                    predictFromUrl2(imageUrl);
+                } else {
+                    // Verificar si imageFiles tiene al menos una imagen y enviar la solicitud si es así
+                    if (imageFiles.length > 0) {
+                        predictFromLocalImage(imageFiles);
+                    } else {
+                        // Si no hay ninguna imagen, mostrar un mensaje de error
+                        alert("No se ha detectado ninguna imagen para enviar.");
+                    }
+                }
             });
+
 
             // Agregar evento de clic para el botón de Agregar imágenes locales
             $("#add_files_button").click(function() {
@@ -216,6 +246,11 @@
                 // Filtrar las predicciones con una probabilidad igual o mayor a 0.90
                 const filteredPredictions = predictions.filter((prediction) => prediction.probability >= 0.90);
 
+                // Crear un contenedor relativo para la imagen y las líneas
+                const container = document.createElement("div");
+                imageContainer.className = "card";
+                imageContainer.style.maxWidth = "30%";
+
                 // Crear un elemento de imagen para mostrar la imagen original
                 const imageElement = document.createElement("img");
                 imageElement.src = imageUrl; // Usar la URL de la imagen pasada como parámetro
@@ -223,13 +258,116 @@
                 // Agregar la imagen al contenedor
                 imageContainer.appendChild(imageElement);
 
+                // Agregar el contenedor al contenedor de la imagen
+                imageContainer.appendChild(container);
+
+                // Dibujar líneas de detección en el contenedor relativo
+                for (const prediction of filteredPredictions) {
+                    const tagName = prediction.tagName;
+                    const boundingBox = prediction.boundingBox;
+
+                    // Obtener las coordenadas de la caja delimitadora
+                    const left = boundingBox.left * imageElement.width;
+                    const top = boundingBox.top * imageElement.height;
+                    const width = boundingBox.width * imageElement.width;
+                    const height = boundingBox.height * imageElement.height;
+
+                    // Crear un elemento DIV para representar la línea de detección
+                    const detectionLine = document.createElement("div");
+                    detectionLine.style.position = "absolute";
+                    detectionLine.style.left = left + "px";
+                    detectionLine.style.top = top + "px";
+                    detectionLine.style.width = width + "px";
+                    detectionLine.style.height = height + "px";
+                    detectionLine.style.border = "2px solid #FF0000"; // Color rojo
+
+                    // Agregar el nombre de la etiqueta como etiqueta de texto
+                    const label = document.createElement("div");
+                    label.style.position = "absolute";
+                    label.style.left = left + "px";
+                    label.style.top = top - 20 + "px"; // Ajustar la posición vertical de la etiqueta
+                    label.style.color = "#FF0000";
+                    label.innerText = tagName;
+
+                    // Agregar la línea de detección y la etiqueta al contenedor relativo
+                    container.appendChild(detectionLine);
+                    container.appendChild(label);
+                }
+            }
+
+            // Función para realizar la solicitud de predicción con imágenes locales
+            function predictFromLocalImage(imageFiles) {
+                // Verificar si hay al menos una imagen para enviar
+                if (imageFiles.length === 0) {
+                    alert("No se ha detectado ninguna imagen local para enviar.");
+                    return;
+                }
+
+                const predictionUrl =
+                    "https://southcentralus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/621e83dd-7b53-4257-8203-e571dd38168c/detect/iterations/Face_detector/image";
+                const predictionKey = "f396d854b020421c86efedb94f63c183";
+
+                // Encabezados de la solicitud
+                const headers = {
+                    "Prediction-Key": predictionKey,
+                    "Cache-Control": "no-cache",
+                };
+
+                // Iterar sobre cada archivo de imagen
+                imageFiles.forEach((imageFile, index) => {
+                    // Crear un objeto FormData para enviar el archivo
+                    const formData = new FormData();
+                    formData.append("image", imageFile);
+
+                    // Realizar la solicitud AJAX para cada imagen
+                    $.ajax({
+                        type: "POST",
+                        url: predictionUrl,
+                        data: formData,
+                        contentType: false,
+                        processData: false,
+                        headers: headers,
+                        success: function(response) {
+                            displayDetectionResults2(imageFile, response);
+                            // Verificar si es la última imagen para mostrar un mensaje después de procesar todas
+                        },
+                        error: function() {
+                            alert(
+                                "Hubo un error al realizar la predicción para una imagen local."
+                                );
+                        }
+                    });
+                });
+            }
+
+            // Función para mostrar los resultados de la detección en imágenes locales
+            function displayDetectionResults2(imageFile, response) {
+                const imageContainer = document.getElementById("imageContainerResult");
+                imageContainer.innerHTML = ""; // Limpiar el contenido existente en el div
+
+                // Obtener la lista de predicciones
+                const predictions = response.predictions;
+
+                // Filtrar las predicciones con una probabilidad igual o mayor a 0.90
+                const filteredPredictions = predictions.filter((prediction) => prediction.probability >= 0.90);
+
                 // Crear un contenedor relativo para la imagen y las líneas
                 const container = document.createElement("div");
-                imageContainer.className = "card";
-                imageContainer.style.maxWidth = "30%";
+                container.className = "card"; // Corregir el nombre de la clase del contenedor
+                container.style.maxWidth = "30%"; // Corregir el estilo del contenedor
+
+                // Crear un elemento de imagen para mostrar la imagen local
+                const imageElement = document.createElement("img");
+                imageElement.src = URL.createObjectURL(
+                imageFile); // Usar URL.createObjectURL para cargar la imagen local
+
+              
+                // Agregar la imagen al contenedor
+                imageContainer.appendChild(imageElement);
 
                 // Agregar el contenedor al contenedor de la imagen
                 imageContainer.appendChild(container);
+
 
                 // Dibujar líneas de detección en el contenedor relativo
                 for (const prediction of filteredPredictions) {

@@ -104,8 +104,9 @@
     <!-- Scripts JavaScript para el manejo del backend -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-cognitiveservices-speech-sdk/3.11.0/speech.sdk.bundle.js">
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@1.16.0/speech.sdk.bundle.js"></script>
+    <script src="{{ route('speechAzure.js') }}"></script>
+
 
     <script>
         $(document).ready(function() {
@@ -138,6 +139,8 @@
                     imageDiv.append(predictionText);
                     imageDiv.append(translationsText);
                     modalBody.append(imageDiv);
+
+                    convertirTextoAVoz(predictionText, translationsText);
                 });
 
                 $("#predictionModal").modal("show");
@@ -531,22 +534,20 @@
                     container.appendChild(label);
                 }
             }
-
-
-            import * as sdk from "microsoft-cognitiveservices-speech-sdk";
-
-            // Configuración de las credenciales de Azure Cognitive Services Speech Service
-            const subscriptionKey = process.env.AZURE_SPEECH_SERVICE_KEY;
-            const serviceRegion = process.env.AZURE_SPEECH_SERVICE_ENDPOINT;
-            const speechConfig = sdk.SpeechConfig.fromSubscription(subscriptionKey, serviceRegion);
-
-            // Crear un reconocedor de texto a voz
-            const recognizer = new sdk.SpeechRecognizer(speechConfig);
-
             // Función para convertir texto a voz
-            function textoAVoz(prediction, translations) {
-                // Texto que deseas convertir en voz (puedes concatenar "prediction" y "translations" si es necesario)
-                const textoAReproducir = `${prediction} ${translations}`;
+            function convertirTextoAVoz(predictionText, translationsText) {
+                // Las credenciales de Azure Cognitive Services Speech Service
+                const subscriptionKey = "be5189ea07e444b8ac4b82166a0ae2bd";
+                const serviceRegion = "eastus";
+
+                // Crear un objeto SpeechConfig
+                const speechConfig = new sdk.SpeechConfig(subscriptionKey, serviceRegion);
+
+                // Texto que deseas convertir en voz
+                const textoAReproducir = predictionText + " " + translationsText;
+
+                // Crear un reconocedor de texto a voz
+                const recognizer = new sdk.SpeechRecognizer(speechConfig);
 
                 // Evento que se dispara cuando se recibe la respuesta del servicio
                 recognizer.recognizeOnceAsync(
@@ -567,16 +568,6 @@
                     }
                 );
             }
-
-            // Función para convertir texto a voz y actualizar elementos HTML
-            function convertirTextoAVoz() {
-                const prediction = document.getElementById("prediction").value;
-                const translations = document.getElementById("translations").value;
-
-                // Llamar a la función textoAVoz con los valores de prediction y translations
-                textoAVoz(prediction, translations);
-            }
-
 
         });
     </script>
