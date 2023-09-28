@@ -109,9 +109,8 @@
     <!-- Scripts JavaScript para el manejo del backend -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@1.16.0/speech.sdk.bundle.js"></script>
-    <script src="{{ route('speechAzure.js') }}"></script>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-cognitiveservices-speech-sdk/3.11.0/speech.sdk.bundle.js">
+    </script>
 
     <script>
         $(document).ready(function() {
@@ -164,8 +163,6 @@
                     imageDiv.append(predictionText);
                     imageDiv.append(translationsText);
                     modalBody.append(imageDiv);
-
-                    convertirTextoAVoz(predictionText, translationsText);
                 });
 
                 $("#predictionModal").modal("show");
@@ -552,49 +549,13 @@
                     container.appendChild(detectionLine);
                     container.appendChild(label);
                 }
-            }
-            // Función para convertir texto a voz
-            function convertirTextoAVoz(predictionText, translationsText) {
-                // Las credenciales de Azure Cognitive Services Speech Service
-                const subscriptionKey = "be5189ea07e444b8ac4b82166a0ae2bd";
-                const serviceRegion = "eastus";
 
-                // Crear un objeto SpeechConfig
-                const speechConfig = new sdk.SpeechConfig(subscriptionKey, serviceRegion);
+                // Agregar el contenedor de la imagen y sus líneas de detección al contenedor general
+                imageContainerDiv.appendChild(container);
 
-                // Texto que deseas convertir en voz
-                const textoAReproducir = predictionText + " " + translationsText;
-
-                // Crear un reconocedor de texto a voz
-                const recognizer = new sdk.SpeechRecognizer(speechConfig);
-
-                // Evento que se dispara cuando se recibe la respuesta del servicio
-                recognizer.recognizeOnceAsync(
-                    result => {
-                        if (result.reason === sdk.ResultReason.RecognizedSpeech) {
-                            // El texto reconocido se encuentra en result.text
-                            console.log("Texto reconocido: " + result.text);
-
-                            // Reproducir el audio del texto convertido a voz
-                            const audio = new Audio(result.audioDataUrl);
-                            audio.play();
-                        } else {
-                            console.error("No se pudo reconocer el texto.");
-                        }
-                    },
-                    error => {
-                        console.error("Error al reconocer el texto: " + error);
-                    }
-                );
-            }
-
-            // Función para convertir texto a voz y actualizar elementos HTML
-            function convertirTextoAVoz() {
-                const prediction = document.getElementById("prediction").value;
-                const translations = document.getElementById("translations").value;
-
-                // Llamar a la función textoAVoz con los valores de prediction y translations
-                textoAVoz(prediction, translations);
+                // Agregar el contenedor general al div #imageContainerResult
+                const imageResultContainer = document.getElementById("imageContainerResult");
+                imageResultContainer.appendChild(imageContainerDiv);
             }
 
 
