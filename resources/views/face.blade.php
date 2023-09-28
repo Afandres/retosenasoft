@@ -60,6 +60,11 @@
                         Enviar Petición
                     </button>
                 </div>
+                <button type="button" class="btn btn-primary btn-sm rounded-pill shadow"
+                    id="detectObjectsButton">Detectar Objetos</button>
+                <div id="imageContainerResult">
+                    <!-- Aquí se mostrará la imagen y las líneas de detección -->
+                </div>
             </div>
         </div>
     </div>
@@ -82,6 +87,7 @@
         </div>
     </div>
 
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function() {
@@ -113,9 +119,12 @@
                 $("#predictionModal").modal("show");
             }
 
+            // Declarar la variable global para imageUrl
+            let imageUrl = "";
+
             // Agregar evento para agregar URL
             $("#add_url_button").click(function() {
-                const imageUrl = $("#image_url").val();
+                imageUrl = $("#image_url").val();
 
                 if (imageUrl) {
                     // Crear una nueva imagen para verificar su tamaño
@@ -126,7 +135,8 @@
                     tempImage.onload = function() {
                         if (tempImage.width < 200 || tempImage.height < 200) {
                             alert(
-                                "La imagen es demasiado pequeña. Por favor, elija una imagen más grande.");
+                                "La imagen es demasiado pequeña. Por favor, elija una imagen más grande."
+                            );
                         } else {
                             // La imagen cumple con los requisitos de tamaño
                             // Agregar la URL a la lista
@@ -141,7 +151,7 @@
                             const img = document.createElement("img");
                             img.src = imageUrl;
                             img.style.maxWidth =
-                            "100%"; // Ajustar el ancho máximo según tus necesidades
+                                "100%"; // Ajustar el ancho máximo según tus necesidades
 
                             // Agregar la imagen al contenedor
                             imageContainerDiv.appendChild(img);
@@ -156,6 +166,21 @@
                 } else {
                     alert("Por favor, ingrese una URL válida.");
                 }
+            });
+
+            // Agregar evento al botón "Detectar Objetos"
+            $("#detectObjectsButton").click(function() {
+                // Verificar si hay al menos una imagen para enviar
+                if (imageUrls.length === 0 && imageFiles.length === 0) {
+                    alert("Por favor, agregue al menos una imagen antes de enviar.");
+                    return;
+                }
+
+                // Enviar la solicitud AJAX
+                predictFromUrl2(imageUrl);
+
+                // Mostrar la imagen
+                displayImage(imageUrl);
             });
 
             // Agregar evento de clic para el botón de Agregar imágenes locales
@@ -190,93 +215,129 @@
                 }
             });
 
-            // Agregar evento de clic para el botón de Enviar Petición
-            $("#send_request_button").click(function() {
-                // Verificar si hay al menos una imagen para enviar
-                if (imageUrls.length === 0 && imageFiles.length === 0) {
-                    alert("Por favor, agregue al menos una imagen antes de enviar.");
-                    return;
-                }
+            // Función para mostrar la imagen
+            function displayImage(imageUrl) {
+                // Crear un elemento div para el contenedor de la imagen
+                const imageContainerDiv = document.createElement("div");
+                imageContainerDiv.className = "card"; // Ajusta las clases de Bootstrap según tu diseño
+                imageContainerDiv.style.maxWidth = "30%";
 
-                const minImageSizeBytes = 1024; // 1KB
+                // Crear un elemento de imagen
+                const img = document.createElement("img");
+                img.src = imageUrl;
 
-                // Función para verificar el tamaño de una imagen
-                function checkImageSize(image) {
-                    return new Promise((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onload = function() {
-                            const imageBlob = new Blob([reader.result]);
-                            if (imageBlob.size >= minImageSizeBytes) {
-                                resolve();
-                            } else {
-                                reject();
-                            }
-                        };
-                        reader.readAsArrayBuffer(image);
-                    });
-                }
+                // Establecer el tamaño máximo
+                img.style.maxWidth = "100%"; // Ajusta el ancho máximo según tus necesidades
 
-                // Validar imágenes locales
-                const localImagePromises = imageFiles.map((imageFile) => {
-                    return checkImageSize(imageFile);
+                // Agregar la imagen al contenedor de la imagen
+                imageContainerDiv.appendChild(img);
+
+                // Agregar el contenedor de la imagen a la lista de imágenes
+                $("#image_list").append(imageContainerDiv);
+            }
+
+            // Función para realizar la solicitud AJAX a la API de Azure
+            function predictFromUrl2(imageUrl) {
+                // URL y clave de predicción de Custom Vision
+                const predictionUrl =
+                    "https://southcentralus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/621e83dd-7b53-4257-8203-e571dd38168c/detect/iterations/Face_detector/url";
+                const predictionKey = "f396d854b020421c86efedb94f63c183";
+                console.log(imageUrl);
+                // Encabezados de la solicitud
+                const headers = {
+                    "Prediction-Key": predictionKey,
+                    "Content-Type": "application/json",
+                    "Cache-Control": "no-cache",
+                };
+
+                // Cuerpo de la solicitud con la URL de la imagen
+                const requestBody = {
+                    "Url": imageUrl
+                };
+
+                // Realizar la solicitud AJAX directamente al servicio Custom Vision
+                $.ajax({
+                    type: "POST",
+                    url: predictionUrl,
+                    data: JSON.stringify(requestBody),
+                    contentType: "application/json",
+                    headers: headers,
+                    success: function(response) {
+                        console.log(response);
+
+                        // Llamar a la función displayDetectionResults para mostrar los resultados
+                        displayDetectionResults(imageUrl, response);
+                    },
+                    error: function() {
+                        alert("Hubo un error al realizar la predicción.");
+                    }
                 });
+            }
 
-                // Validar imágenes a través de URL
-                const imageUrlPromises = imageUrls.map((imageUrl) => {
-                    return new Promise((resolve, reject) => {
-                        const tempImage = new Image();
-                        tempImage.src = imageUrl;
-                        tempImage.onload = function() {
-                            if (tempImage.width >= 200 && tempImage.height >= 200) {
-                                resolve();
-                            } else {
-                                reject();
-                            }
-                        };
-                        tempImage.onerror = function() {
-                            reject();
-                        };
-                    });
-                });
+            function displayDetectionResults(imageUrl, response) {
+                const imageContainer = document.getElementById("imageContainerResult");
+                imageContainer.innerHTML = ""; // Limpiar el contenido existente en el div
 
-                // Ejecutar todas las promesas para validar imágenes
-                Promise.all([...localImagePromises, ...imageUrlPromises])
-                    .then(() => {
-                        // Todas las imágenes cumplen con los requisitos de tamaño
-                        // Crear un objeto FormData y enviar la solicitud a Azure Face API
-                        const formData = new FormData();
-                        // Agregar las imágenes al FormData
-                        // ...
+                // Obtener la lista de predicciones
+                const predictions = response.predictions;
 
-                        const subscriptionKey = "920a27b0bc944f6e89d2fd2920721065";
-                        const endpoint = "https://facesoft.cognitiveservices.azure.com/";
+                // Filtrar las predicciones con una probabilidad igual o mayor a 0.90
+                const filteredPredictions = predictions.filter((prediction) => prediction.probability >= 0.90);
 
-                        // Realizar la solicitud AJAX a tu Azure Function
-                        $.ajax({
-                            type: "POST",
-                            url: `${endpoint}face/v1.0/detect?detectionModel=detection_01`,
-                            data: formData,
-                            contentType: "application/octet-stream", // Cambia el tipo de contenido aquí
-                            processData: false,
-                            headers: {
-                                "Ocp-Apim-Subscription-Key": subscriptionKey
-                            },
-                            success: function(response) {
-                                // Manejar la respuesta de tu Azure Function aquí (resultado del reconocimiento facial)
-                                console.log(response);
+                // Crear un elemento de imagen para mostrar la imagen original
+                const imageElement = document.createElement("img");
+                imageElement.src = imageUrl; // Usar la URL de la imagen pasada como parámetro
 
-                                // Mostrar los resultados en el modal
-                                showModal(response);
-                            },
-                            error: function() {
-                                alert("Hubo un error al realizar la solicitud al servidor.");
-                            }
-                        });
-                    })
-                    .catch(() => {
-                        alert("Una de las imágenes es demasiado pequeña o no se pudo cargar.");
-                    });
-            });
+                // Agregar la imagen al contenedor
+                imageContainer.appendChild(imageElement);
+
+                // Crear un contenedor relativo para la imagen y las líneas
+                const container = document.createElement("div");
+                imageContainer.style.position = "relative";
+                imageContainer.style.display = "inline-block";
+                imageContainer.style.width = imageElement.width + "px";
+                imageContainer.style.height = imageElement.height + "px";
+
+                // Agregar el contenedor al contenedor de la imagen
+                imageContainer.appendChild(container);
+
+                // Dibujar líneas de detección en el contenedor relativo
+                for (const prediction of filteredPredictions) {
+                    const tagName = prediction.tagName;
+                    const boundingBox = prediction.boundingBox;
+
+                    // Obtener las coordenadas de la caja delimitadora
+                    const left = boundingBox.left * imageElement.width;
+                    const top = boundingBox.top * imageElement.height;
+                    const width = boundingBox.width * imageElement.width;
+                    const height = boundingBox.height * imageElement.height;
+
+                    // Crear un elemento DIV para representar la línea de detección
+                    const detectionLine = document.createElement("div");
+                    detectionLine.style.position = "absolute";
+                    detectionLine.style.left = left + "px";
+                    detectionLine.style.top = top + "px";
+                    detectionLine.style.width = width + "px";
+                    detectionLine.style.height = height + "px";
+                    detectionLine.style.border = "2px solid #FF0000"; // Color rojo
+
+                    // Agregar el nombre de la etiqueta como etiqueta de texto
+                    const label = document.createElement("div");
+                    label.style.position = "absolute";
+                    label.style.left = left + "px";
+                    label.style.top = top - 20 + "px"; // Ajustar la posición vertical de la etiqueta
+                    label.style.color = "#FF0000";
+                    label.innerText = tagName;
+
+                    // Agregar la línea de detección y la etiqueta al contenedor relativo
+                    container.appendChild(detectionLine);
+                    container.appendChild(label);
+                }
+            }
+
+
+
+
         });
     </script>
 </body>
