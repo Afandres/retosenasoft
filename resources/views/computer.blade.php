@@ -27,6 +27,8 @@
             <h2>Predicción de Imágenes</h2>
         </div>
         <div class="card">
+            <!-- Div para mostrar notificaciones -->
+            <div id="notification" class="alert alert-danger" style="display: none;"></div>
             <div class="card-body">
                 {!! Form::open(['route' => 'predict', 'method' => 'POST', 'enctype' => 'multipart/form-data']) !!}
                 <!-- Formulario para subir imágenes -->
@@ -73,13 +75,14 @@
 
                 {!! Form::close() !!}
             </div>
-            <button type="button" class="btn btn-primary btn-sm rounded-pill shadow" id="detectObjectsButton">Detectar
-                Objetos</button>
+
             <div id="imageContainerResult">
-                <!-- Aquí se mostrará la imagen y las líneas de detección -->
+                <!-- Aquí se mostrarán las imágenes y sus resultados -->
             </div>
+
         </div>
     </div>
+    
 
     <!-- Modal para mostrar los resultados de la predicción y traducción -->
     <div class="modal fade" id="predictionModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
@@ -92,10 +95,12 @@
                 <div class="modal-body">
                     <!-- Contenido de resultados -->
                     <div id="image_results"></div>
-                    <p id="text_to_speech_result"></p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary btn-sm rounded-pill shadow"
+                        id="detectObjectsButton">Detectar
+                        Objetos</button>
                 </div>
             </div>
         </div>
@@ -110,9 +115,29 @@
     <script>
         $(document).ready(function() {
             let imageUrls = []; // Lista para almacenar las URLs de las imágenes
+            let imageUrlsDetection = [];
+            let completedRequests = 0; // Contador de solicitudes completadas
             let imageFiles = []; // Lista para almacenar las imágenes locales
             let
                 imagesAndResponses = []; // Variable para almacenar la información de todas las imágenes y resultados
+
+            function showNotification(message, isError = false) {
+                const notificationElement = document.getElementById("notification");
+                notificationElement.textContent = message;
+
+                if (isError) {
+                    notificationElement.classList.add("alert-danger");
+                } else {
+                    notificationElement.classList.remove("alert-danger");
+                }
+
+                notificationElement.style.display = "block";
+
+                // Desaparecer después de 3 segundos (puedes ajustar este tiempo)
+                setTimeout(function() {
+                    notificationElement.style.display = "none";
+                }, 3000);
+            }
 
             // Función para mostrar los resultados en el modal
             function showModal(imagesAndResponses) {
@@ -252,7 +277,12 @@
                         translateText(prediction, imageUrl, response.predictions[0].tagName);
 
                     } else {
-                        alert("No tiene coincidencia");
+                        showNotification("No tiene coincidencia", true);
+                        // Limpiar las imagenes cargadas
+                        imageUrls = [];
+                        imageFiles = [];
+
+
                     }
                 }
 
@@ -381,6 +411,7 @@
                             translations: translatedText
                         };
 
+
                         // Remover resultados anteriores con la misma URL de imagen
                         imagesAndResponses = imagesAndResponses.filter(item => item.imageUrl !==
                             imageUrl);
@@ -392,6 +423,8 @@
                         if (imagesAndResponses.length === imageUrls.length + imageFiles.length) {
                             // Luego, muestra todas las imágenes y resultados en el modal
                             showModal(imagesAndResponses);
+                            // Agregar la URL a la lista
+                            imageUrlsDetection.push(imageUrl);
                         }
                     },
                     error: function() {
@@ -402,38 +435,20 @@
 
             // Agregar evento al botón "Detectar Objetos"
             $("#detectObjectsButton").click(function() {
-                // Obtener la URL de la imagen
-                const imageUrl = $("#image_url").val();
+                console.log(imageUrlsDetection);
+                // Recorrer la lista de URLs de imágenes
+                imageUrlsDetection.forEach((imageUrl) => {
+                    // Llamar a la función para detectar objetos para cada imagen
+                    predictFromUrl2(imageUrl);
+                });
+                console.log(imageUrlsDetection);
 
-                // Enviar la solicitud AJAX
-                predictFromUrl2(imageUrl);
 
-                // Mostrar la imagen
-                displayImage(imageUrl);
             });
 
-            // Función para mostrar la imagen
-            function displayImage(imageUrl) {
-                // Crear un elemento div para el contenedor de la imagen
-                const imageContainerDiv = document.createElement("div");
-                imageContainerDiv.className = "card"; // Ajusta las clases de Bootstrap según tu diseño
-                imageContainerDiv.style.maxWidth = "30%";
 
-                // Crear un elemento de imagen
-                const img = document.createElement("img");
-                img.src = imageUrl;
 
-                // Establecer el tamaño máximo
-                img.style.maxWidth = "100%"; // Ajusta el ancho máximo según tus necesidades
-
-                // Agregar la imagen al contenedor de la imagen
-                imageContainerDiv.appendChild(img);
-
-                // Agregar el contenedor de la imagen a la lista de imágenes
-                $("#image_list").append(imageContainerDiv);
-            }
-
-            // Función para realizar la solicitud AJAX a la API de Azure
+            // Dentro de la función predictFromUrl2
             function predictFromUrl2(imageUrl) {
                 // URL y clave de predicción de Custom Vision
                 const predictionUrl =
@@ -463,7 +478,12 @@
                         console.log(response);
 
                         // Llamar a la función displayDetectionResults para mostrar los resultados
-                        displayDetectionResults(imageUrl, response);
+                        displayImageAndDetectionResults(imageUrl, response);
+
+                        // Agregar la URL de la imagen a la lista imageUrlsDetection
+                        imageUrlsDetection.push(imageUrl); // Aquí agregamos la URL
+
+
                     },
                     error: function() {
                         alert("Hubo un error al realizar la predicción.");
@@ -471,32 +491,31 @@
                 });
             }
 
-            function displayDetectionResults(imageUrl, response) {
-                const imageContainer = document.getElementById("imageContainerResult");
-                imageContainer.innerHTML = ""; // Limpiar el contenido existente en el div
+
+            // Función para mostrar la imagen y sus líneas de detección
+            function displayImageAndDetectionResults(imageUrl, response) {
+                // Crear un contenedor div para la imagen y sus líneas de detección
+                const imageContainerDiv = document.createElement("div");
+                imageContainerDiv.className =
+                    "image-container"; // Puedes personalizar las clases de Bootstrap según tus necesidades
+
+                // Crear un elemento de imagen para mostrar la imagen original
+                const imageElement = document.createElement("img");
+                imageElement.src = imageUrl;
+
+                // Crear un contenedor relativo para la imagen y las líneas de detección
+                const container = document.createElement("div");
+                container.style.position = "relative";
+                container.style.width = "50px"; // El contenedor se ajustará automáticamente al ancho de la imagen
+
+                // Agregar la imagen al contenedor de la imagen
+                container.appendChild(imageElement);
 
                 // Obtener la lista de predicciones
                 const predictions = response.predictions;
 
                 // Filtrar las predicciones con una probabilidad igual o mayor a 0.90
                 const filteredPredictions = predictions.filter((prediction) => prediction.probability >= 0.90);
-
-                // Crear un elemento de imagen para mostrar la imagen original
-                const imageElement = document.createElement("img");
-                imageElement.src = imageUrl; // Usar la URL de la imagen pasada como parámetro
-
-                // Agregar la imagen al contenedor
-                imageContainer.appendChild(imageElement);
-
-                // Crear un contenedor relativo para la imagen y las líneas
-                const container = document.createElement("div");
-                imageContainer.style.position = "relative";
-                imageContainer.style.display = "inline-block";
-                imageContainer.style.width = imageElement.width + "px";
-                imageContainer.style.height = imageElement.height + "px";
-
-                // Agregar el contenedor al contenedor de la imagen
-                imageContainer.appendChild(container);
 
                 // Dibujar líneas de detección en el contenedor relativo
                 for (const prediction of filteredPredictions) {
@@ -530,51 +549,13 @@
                     container.appendChild(detectionLine);
                     container.appendChild(label);
                 }
-            }
 
+                // Agregar el contenedor de la imagen y sus líneas de detección al contenedor general
+                imageContainerDiv.appendChild(container);
 
-            import * as sdk from "microsoft-cognitiveservices-speech-sdk";
-
-            // Configuración de las credenciales de Azure Cognitive Services Speech Service
-            const subscriptionKey = process.env.AZURE_SPEECH_SERVICE_KEY;
-            const serviceRegion = process.env.AZURE_SPEECH_SERVICE_ENDPOINT;
-            const speechConfig = sdk.SpeechConfig.fromSubscription(subscriptionKey, serviceRegion);
-
-            // Crear un reconocedor de texto a voz
-            const recognizer = new sdk.SpeechRecognizer(speechConfig);
-
-            // Función para convertir texto a voz
-            function textoAVoz(prediction, translations) {
-                // Texto que deseas convertir en voz (puedes concatenar "prediction" y "translations" si es necesario)
-                const textoAReproducir = `${prediction} ${translations}`;
-
-                // Evento que se dispara cuando se recibe la respuesta del servicio
-                recognizer.recognizeOnceAsync(
-                    result => {
-                        if (result.reason === sdk.ResultReason.RecognizedSpeech) {
-                            // El texto reconocido se encuentra en result.text
-                            console.log("Texto reconocido: " + result.text);
-
-                            // Reproducir el audio del texto convertido a voz
-                            const audio = new Audio(result.audioDataUrl);
-                            audio.play();
-                        } else {
-                            console.error("No se pudo reconocer el texto.");
-                        }
-                    },
-                    error => {
-                        console.error("Error al reconocer el texto: " + error);
-                    }
-                );
-            }
-
-            // Función para convertir texto a voz y actualizar elementos HTML
-            function convertirTextoAVoz() {
-                const prediction = document.getElementById("prediction").value;
-                const translations = document.getElementById("translations").value;
-
-                // Llamar a la función textoAVoz con los valores de prediction y translations
-                textoAVoz(prediction, translations);
+                // Agregar el contenedor general al div #imageContainerResult
+                const imageResultContainer = document.getElementById("imageContainerResult");
+                imageResultContainer.appendChild(imageContainerDiv);
             }
 
 
