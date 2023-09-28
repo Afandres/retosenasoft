@@ -11,6 +11,7 @@
         "vite": "^4.0.0"
     },
     "dependencies": {
-        "boxicons": "^2.1.4"
+        "boxicons": "^2.1.4",
+        "microsoft-cognitiveservices-speech-sdk": "^1.32.0"
     }
 }
