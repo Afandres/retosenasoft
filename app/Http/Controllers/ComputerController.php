@@ -11,4 +11,11 @@ class ComputerController extends Controller
         return view('computer');
     }
 
+    public function faceindex()
+    {
+        return view('face');
+    }
+
+    
+
 }

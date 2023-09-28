@@ -19,6 +19,7 @@ Route::get('/', function () {
 });
 
 Route::get('/computertranslator', [ComputerController::class, 'index'])->name('computertranslator.index');
+Route::get('/face', [ComputerController::class, 'faceindex'])->name('face.index');
 Route::post('/image', [ComputerController::class, 'uploadimage'])->name('imageurl');
 
 // Ruta para mostrar el formulario
